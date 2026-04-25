@@ -4,22 +4,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Questionário Holding Familiar</title>
+    <title>Questionário Holding Familiar | Primetax Solutions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primetax: {
+                gray:    '#4A4A4A',
+                teal:    '#4FBFBF',
+                light:   '#F5F5F5',
+                medium:  '#999999',
+                white:   '#FFFFFF',
+              }
+            },
+            fontFamily: {
+              heading: ['Montserrat', 'sans-serif'],
+              body:    ['Open Sans', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
     <style>
-      /* Custom scrollbar for better aesthetics */
-      ::-webkit-scrollbar {
-        width: 8px;
+      body {
+        font-family: 'Open Sans', sans-serif;
       }
-      ::-webkit-scrollbar-track {
-        background: #f1f5f9;
+      h1, h2, h3, h4, h5 {
+        font-family: 'Montserrat', sans-serif;
       }
-      ::-webkit-scrollbar-thumb {
-        background: #94a3b8;
-        border-radius: 10px;
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #f1f5f9; }
+      ::-webkit-scrollbar-thumb { background: #4FBFBF; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb:hover { background: #3aa8a8; }
+      .primetax-gradient {
+        background: linear-gradient(135deg, #4A4A4A 0%, #333333 100%);
       }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
+      .step-card {
+        border-top: 3px solid #4FBFBF;
       }
     </style>
   <script type="importmap">
@@ -32,7 +58,7 @@
 }
 </script>
 </head>
-  <body class="bg-slate-100">
+  <body class="bg-primetax-light">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

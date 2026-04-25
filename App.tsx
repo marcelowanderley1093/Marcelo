@@ -1,5 +1,8 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import emailjs from '@emailjs/browser';
 import {
   Titular,
   Conjuge,
@@ -126,8 +129,8 @@ const isValidCPF = (cpf: string | null | undefined): boolean => {
 
 // Helper Components (defined outside main App component to prevent re-creation on re-renders)
 const SectionCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md space-y-6 transition-all duration-300 ease-in-out">
-    <h2 className="text-2xl font-bold text-slate-800 border-b-2 border-indigo-200 pb-3">{title}</h2>
+  <div className="bg-white p-6 sm:p-8 rounded-xl shadow-md space-y-6 transition-all duration-300 ease-in-out step-card">
+    <h2 className="text-xl font-bold pb-3 border-b-2" style={{color:'#4A4A4A', borderColor:'#4FBFBF', fontFamily:'Montserrat,sans-serif'}}>{title}</h2>
     <div className="space-y-4">{children}</div>
   </div>
 );
@@ -152,7 +155,8 @@ const TextInput: React.FC<{
       onChange={onChange}
       onBlur={onBlur} 
       placeholder={placeholder} 
-      className={`w-full px-4 py-2 border rounded-md shadow-sm transition ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300 focus:ring-indigo-500 focus:border-indigo-500'}`}
+      className={`w-full px-4 py-2 border rounded-md shadow-sm transition ${error ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-slate-300'}`}
+      style={!error ? {outlineColor:'#4FBFBF'} : {}}
       aria-invalid={!!error}
       aria-describedby={error ? `${name}-error` : undefined}
     />
@@ -164,7 +168,7 @@ const TextInput: React.FC<{
 const TextArea: React.FC<{ label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string; rows?: number }> = ({ label, name, value, onChange, placeholder = '', rows = 3 }) => (
   <div>
     <label htmlFor={name} className="block text-sm font-medium text-slate-600 mb-1">{label}</label>
-    <textarea id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="w-full px-4 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
+    <textarea id={name} name={name} value={value} onChange={onChange} placeholder={placeholder} rows={rows} className="w-full px-4 py-2 border border-slate-300 rounded-md shadow-sm transition" style={{outlineColor:'#4FBFBF'}}></textarea>
   </div>
 );
 
@@ -174,7 +178,7 @@ const RadioGroup: React.FC<{ label: string; name: string; value: string; options
     <div className="flex flex-wrap gap-x-6 gap-y-2">
       {options.map(option => (
         <div key={option.value} className="flex items-center">
-          <input type="radio" id={`${name}-${option.value}`} name={name} value={option.value} checked={value === option.value} onChange={onChange} className="h-4 w-4 text-indigo-600 border-slate-300 focus:ring-indigo-500" />
+          <input type="radio" id={`${name}-${option.value}`} name={name} value={option.value} checked={value === option.value} onChange={onChange} className="h-4 w-4 border-slate-300" style={{accentColor:'#4FBFBF'}} />
           <label htmlFor={`${name}-${option.value}`} className="ml-2 block text-sm text-slate-800">{option.label}</label>
         </div>
       ))}
@@ -184,13 +188,13 @@ const RadioGroup: React.FC<{ label: string; name: string; value: string; options
 
 const Checkbox: React.FC<{ label: string; name: string; value?: string; checked: boolean; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; }> = ({ label, name, value, checked, onChange }) => (
     <div className="flex items-center">
-        <input type="checkbox" id={name} name={name} value={value} checked={checked} onChange={onChange} className="h-4 w-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500" />
+        <input type="checkbox" id={name} name={name} value={value} checked={checked} onChange={onChange} className="h-4 w-4 border-slate-300 rounded" style={{accentColor:'#4FBFBF'}} />
         <label htmlFor={name} className="ml-2 block text-sm text-slate-800">{label}</label>
     </div>
 );
 
 const AddButton: React.FC<{ onClick: () => void; text: string }> = ({ onClick, text }) => (
-    <button type="button" onClick={onClick} className="mt-2 flex items-center gap-2 px-4 py-2 border border-dashed border-slate-400 text-slate-600 rounded-md hover:bg-slate-50 hover:border-indigo-500 hover:text-indigo-600 transition">
+    <button type="button" onClick={onClick} className="mt-2 flex items-center gap-2 px-4 py-2 border border-dashed rounded-md transition" style={{borderColor:'#4FBFBF', color:'#4FBFBF'}}>
         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
         {text}
     </button>
@@ -204,8 +208,8 @@ const RemoveButton: React.FC<{ onClick: () => void; }> = ({ onClick }) => (
 
 const StepTitle: React.FC<{ title: string; subtitle: string }> = ({ title, subtitle }) => (
   <div className="mb-6">
-    <h2 className="text-2xl font-semibold text-slate-800 tracking-tight">{title}</h2>
-    <p className="text-slate-500 mt-1">{subtitle}</p>
+    <h2 className="text-2xl font-bold tracking-tight" style={{color:'#4A4A4A', fontFamily:'Montserrat,sans-serif'}}>{title}</h2>
+    <p className="mt-1" style={{color:'#999999'}}>{subtitle}</p>
   </div>
 );
 
@@ -216,6 +220,9 @@ export default function App() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [declarationAgreed, setDeclarationAgreed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'>('idle');
+  const formRef = useRef<HTMLDivElement>(null);
 
 
   const validateAndCheckDuplicates = useCallback((cpf: string, fieldId: string) => {
@@ -417,10 +424,193 @@ export default function App() {
   const nextStep = () => setCurrentStep(prev => (prev < TOTAL_STEPS - 1 ? prev + 1 : prev));
   const prevStep = () => setCurrentStep(prev => (prev > 0 ? prev - 1 : prev));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generatePDF = async (): Promise<Blob> => {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    let y = margin;
+
+    // Header com logo e cores Primetax
+    pdf.setFillColor(74, 74, 74);
+    pdf.rect(0, 0, pageWidth, 28, 'F');
+    pdf.setFillColor(79, 191, 191);
+    pdf.rect(0, 28, pageWidth, 2, 'F');
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text('PRIMETAX SOLUTIONS', margin, 12);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text('Questionário de Holding Familiar — Planejamento Patrimonial e Sucessório', margin, 21);
+    y = 40;
+
+    // Informações do titular
+    pdf.setTextColor(74, 74, 74);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(13);
+    pdf.text('DADOS DO TITULAR', margin, y);
+    pdf.setFillColor(79, 191, 191);
+    pdf.rect(margin, y + 1, pageWidth - 2 * margin, 0.5, 'F');
+    y += 8;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+
+    const addField = (label: string, value: string) => {
+      if (y > pageHeight - 25) {
+        pdf.addPage();
+        y = margin;
+        pdf.setFillColor(74, 74, 74);
+        pdf.rect(0, 0, pageWidth, 8, 'F');
+        pdf.setFillColor(79, 191, 191);
+        pdf.rect(0, 8, pageWidth, 1, 'F');
+        y = 15;
+      }
+      if (!value || value === '') return;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(74, 74, 74);
+      pdf.text(`${label}:`, margin, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(80, 80, 80);
+      const lines = pdf.splitTextToSize(value, pageWidth - margin * 2 - 45);
+      pdf.text(lines, margin + 45, y);
+      y += Math.max(6, lines.length * 5);
+    };
+
+    const addSection = (title: string) => {
+      if (y > pageHeight - 35) { pdf.addPage(); y = margin; }
+      y += 4;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(12);
+      pdf.setTextColor(74, 74, 74);
+      pdf.text(title, margin, y);
+      pdf.setFillColor(79, 191, 191);
+      pdf.rect(margin, y + 1, pageWidth - 2 * margin, 0.4, 'F');
+      y += 8;
+      pdf.setFontSize(10);
+    };
+
+    addField('Data', formData.dataPreenchimento);
+    addField('Responsável', formData.responsavelPreenchimento);
+
+    addSection('1. Dados do Titular');
+    addField('Nome', formData.titular.nomeCompleto);
+    addField('CPF', formData.titular.cpf);
+    addField('RG', formData.titular.rg);
+    addField('Nascimento', formData.titular.dataNascimento);
+    addField('Nacionalidade', formData.titular.nacionalidade);
+    addField('Profissão', formData.titular.profissao);
+    addField('Endereço', formData.titular.endereco);
+    addField('Telefone', formData.titular.telefone);
+    addField('E-mail', formData.titular.email);
+    addField('Estado Civil', formData.titular.estadoCivil);
+    addField('Regime de Bens', formData.titular.regimeBens);
+
+    addSection('2. Cônjuge');
+    addField('Nome', formData.conjuge.nomeCompleto);
+    addField('CPF', formData.conjuge.cpf);
+    addField('Nascimento', formData.conjuge.dataNascimento);
+    addField('Profissão', formData.conjuge.profissao);
+
+    addSection('3. Herdeiros');
+    formData.herdeiros.forEach((h, i) => {
+      addField(`Herdeiro ${i+1}`, h.nomeCompleto);
+      addField('CPF', h.cpf);
+      addField('Parentesco', h.grauParentesco);
+    });
+
+    addSection('4. Objetivos da Holding');
+    const objetivos = Object.entries(formData.objetivosHolding)
+      .filter(([k, v]) => v === true)
+      .map(([k]) => k.replace(/([A-Z])/g, ' $1').trim())
+      .join(', ');
+    addField('Objetivos', objetivos);
+
+    addSection('5. Imóveis');
+    formData.imoveis.forEach((im, i) => {
+      addField(`Imóvel ${i+1}`, `${im.tipo} — ${im.endereco}`);
+      addField('Valor Mercado', im.valorMercado ? `R$ ${im.valorMercado}` : '');
+    });
+
+    addSection('6. Empresas');
+    formData.empresas.forEach((emp, i) => {
+      addField(`Empresa ${i+1}`, emp.razaoSocial);
+      addField('CNPJ', emp.cnpj);
+      addField('Participação', emp.percentualParticipacao ? `${emp.percentualParticipacao}%` : '');
+    });
+
+    addSection('7. Situação Tributária');
+    addField('IR em dia', formData.regularidadeFiscal.irEmDia);
+    addField('Débitos Receita Federal', formData.regularidadeFiscal.debitosReceitaFederal);
+    addField('Malha Fina', formData.regularidadeFiscal.malhaFina);
+
+    addSection('8. Informações Complementares');
+    addField('Bens no Exterior', formData.infoComplementares.bensExterior);
+    addField('Offshore/Trusts', formData.infoComplementares.offshoreTrusts);
+    addField('Seguro de Vida', formData.infoComplementares.seguroVida);
+
+    // Footer
+    const totalPages = (pdf as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFillColor(245, 245, 245);
+      pdf.rect(0, pageHeight - 10, pageWidth, 10, 'F');
+      pdf.setFillColor(79, 191, 191);
+      pdf.rect(0, pageHeight - 10, pageWidth, 0.5, 'F');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(153, 153, 153);
+      pdf.text('Primetax Solutions — Documento Confidencial', margin, pageHeight - 4);
+      pdf.text(`Página ${i} de ${totalPages}`, pageWidth - margin - 20, pageHeight - 4);
+    }
+
+    return pdf.output('blob');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Formulário Final:", JSON.stringify(formData, null, 2));
-    alert("Questionário enviado com sucesso! Verifique o console para ver os dados.");
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+    try {
+      // Gerar PDF
+      const pdfBlob = await generatePDF();
+      // Download automático
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Questionario_Holding_${formData.titular.nomeCompleto || 'Cliente'}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // Enviar e-mail via EmailJS
+      // Substitua os IDs abaixo com os seus do EmailJS
+      const EMAILJS_SERVICE_ID = 'service_primetax';
+      const EMAILJS_TEMPLATE_ID = 'template_holding';
+      const EMAILJS_PUBLIC_KEY = 'YOUR_PUBLIC_KEY';
+
+      const templateParams = {
+        titular_nome: formData.titular.nomeCompleto || 'Não informado',
+        titular_email: formData.titular.email || 'Não informado',
+        titular_cpf: formData.titular.cpf || 'Não informado',
+        data_preenchimento: formData.dataPreenchimento,
+        responsavel: formData.responsavelPreenchimento || 'Não informado',
+        num_herdeiros: String(formData.herdeiros.length),
+        num_imoveis: String(formData.imoveis.length),
+        num_empresas: String(formData.empresas.length),
+        to_email: 'contato@primetax.com.br',
+      };
+
+      if (EMAILJS_PUBLIC_KEY !== 'YOUR_PUBLIC_KEY') {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams, EMAILJS_PUBLIC_KEY);
+      }
+
+      setSubmitStatus('success');
+    } catch (err) {
+      console.error('Erro ao enviar:', err);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const progress = ((currentStep + 1) / TOTAL_STEPS) * 100;
@@ -430,10 +620,13 @@ export default function App() {
         case 0:
             return (
                 <SectionCard title="Instruções e Identificação Inicial">
-                  <div className="prose prose-slate max-w-none">
-                    <p>Este questionário tem como objetivo coletar informações essenciais para a elaboração de um planejamento patrimonial e sucessório adequado às necessidades da sua família.</p>
-                    <p>As informações fornecidas são <strong>confidenciais</strong> e servirão de base para a análise de viabilidade, estruturação jurídica e tributária da holding familiar.</p>
-                    <p className="font-semibold text-indigo-700">Importante: Responda com o máximo de detalhes possível. Caso não tenha alguma informação no momento, indique "A FORNECER" e providencie posteriormente. Informações incompletas ou incorretas podem comprometer a eficácia do planejamento.</p>
+                  <div className="rounded-lg p-4 mb-2" style={{backgroundColor:'#f0fafa', border:'1px solid #4FBFBF'}}>
+                    <p className="text-sm font-bold mb-1" style={{color:'#4A4A4A', fontFamily:'Montserrat,sans-serif'}}>Bem-vindo ao Diagnóstico Patrimonial da Primetax</p>
+                    <p className="text-sm" style={{color:'#4A4A4A'}}>Este questionário foi desenvolvido pela equipe da <strong>Primetax Solutions</strong> para coletar as informações necessárias à elaboração do seu planejamento patrimonial e sucessório com <strong>segurança jurídica e eficiência tributária</strong>.</p>
+                    <p className="text-sm mt-2" style={{color:'#4A4A4A'}}>Todas as informações são <strong>estritamente confidenciais</strong> e utilizadas exclusivamente para fins de estruturação da holding familiar.</p>
+                  </div>
+                  <div className="rounded-lg p-3" style={{backgroundColor:'#fffbeb', border:'1px solid #fcd34d'}}>
+                    <p className="text-sm font-semibold" style={{color:'#92400e'}}>&#9888; Importante: Responda com o máximo de detalhes possível. Caso não tenha alguma informação no momento, indique "A FORNECER" e providencie posteriormente. Informações incompletas podem comprometer a eficácia do planejamento.</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t mt-4">
                      <TextInput label="Data" name="dataPreenchimento" value={formData.dataPreenchimento} onChange={(e) => setFormData(p => ({...p, dataPreenchimento: e.target.value}))} type="text" />
@@ -1170,52 +1363,95 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8" style={{backgroundColor:'#F5F5F5'}}>
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-800">Questionário para Holding Familiar</h1>
-            <p className="mt-2 text-slate-600">Planejamento Patrimonial e Sucessório</p>
-        </div>
-        
-        {/* Progress Bar */}
-        <div className="mb-6">
-            <div className="flex justify-between mb-1">
-                <span className="text-base font-medium text-indigo-700">Progresso</span>
-                <span className="text-sm font-medium text-indigo-700">Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
+        {/* Header Primetax */}
+        <div className="rounded-xl overflow-hidden shadow-lg mb-8">
+          <div className="flex items-center justify-between px-6 py-5" style={{background:'linear-gradient(135deg, #4A4A4A 0%, #333333 100%)'}}>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-extrabold text-white tracking-wide" style={{fontFamily:'Montserrat,sans-serif'}}>PRIME<span style={{color:'#4FBFBF'}}>TAX</span></span>
+                <span className="text-xs font-semibold tracking-widest" style={{color:'#4FBFBF', fontFamily:'Montserrat,sans-serif'}}>SOLUTIONS</span>
+              </div>
+              <p className="text-xs mt-1" style={{color:'#999999'}}>Planejamento Patrimonial e Sucessório</p>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5">
-                <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-white" style={{fontFamily:'Montserrat,sans-serif'}}>Questionário</p>
+              <p className="text-xs" style={{color:'#4FBFBF'}}>Holding Familiar</p>
+            </div>
+          </div>
+          <div className="h-1" style={{backgroundColor:'#4FBFBF'}}></div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mb-6 bg-white rounded-lg px-5 py-4 shadow-sm">
+            <div className="flex justify-between mb-2">
+                <span className="text-sm font-semibold" style={{color:'#4FBFBF', fontFamily:'Montserrat,sans-serif'}}>Progresso</span>
+                <span className="text-sm font-semibold" style={{color:'#4A4A4A'}}>Etapa {currentStep + 1} de {TOTAL_STEPS}</span>
+            </div>
+            <div className="w-full rounded-full h-2" style={{backgroundColor:'#E5E7EB'}}>
+                <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%`, backgroundColor:'#4FBFBF' }}></div>
             </div>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          {renderStep()}
+          <div ref={formRef}>
+            {renderStep()}
+          </div>
+
+          {/* Status de envio */}
+          {submitStatus === 'success' && (
+            <div className="rounded-lg p-4 text-center" style={{backgroundColor:'#d1fae5', border:'1px solid #6ee7b7'}}>
+              <p className="font-bold text-green-800" style={{fontFamily:'Montserrat,sans-serif'}}>Questionário enviado com sucesso!</p>
+              <p className="text-sm text-green-700 mt-1">O PDF foi gerado e baixado automaticamente. Nossa equipe entrará em contato em breve.</p>
+            </div>
+          )}
+          {submitStatus === 'error' && (
+            <div className="rounded-lg p-4 text-center" style={{backgroundColor:'#fee2e2', border:'1px solid #fca5a5'}}>
+              <p className="font-bold text-red-800" style={{fontFamily:'Montserrat,sans-serif'}}>Erro ao enviar.</p>
+              <p className="text-sm text-red-700 mt-1">O PDF foi gerado, mas houve um problema ao enviar o e-mail. Por favor, entre em contato diretamente.</p>
+            </div>
+          )}
 
           {/* Navigation */}
           <div className="flex justify-between items-center pt-6 border-t mt-6">
-            <button type="button" onClick={prevStep} disabled={currentStep === 0} className="px-6 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition">
-              Anterior
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="px-6 py-2 rounded-md font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{backgroundColor:'#E5E7EB', color:'#4A4A4A', fontFamily:'Montserrat,sans-serif'}}
+            >
+              ← Anterior
             </button>
             {currentStep < TOTAL_STEPS - 1 ? (
-              <button 
-                type="button" 
-                onClick={nextStep} 
+              <button
+                type="button"
+                onClick={nextStep}
                 disabled={!isStepValid()}
-                className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition disabled:bg-indigo-400 disabled:cursor-not-allowed"
+                className="px-8 py-2 rounded-md font-bold text-white transition disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{backgroundColor:'#4FBFBF', fontFamily:'Montserrat,sans-serif'}}
               >
-                Próximo
+                Próximo →
               </button>
             ) : (
-              <button 
-                type="submit" 
-                disabled={!declarationAgreed}
-                className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition disabled:bg-green-300 disabled:cursor-not-allowed"
+              <button
+                type="submit"
+                disabled={!declarationAgreed || isSubmitting}
+                className="px-8 py-2 rounded-md font-bold text-white transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                style={{backgroundColor: isSubmitting ? '#999' : '#4A4A4A', fontFamily:'Montserrat,sans-serif'}}
               >
-                Enviar Questionário
+                {isSubmitting ? 'Gerando PDF...' : '📄 Enviar e Gerar PDF'}
               </button>
             )}
           </div>
         </form>
+
+        {/* Footer */}
+        <div className="mt-10 text-center pb-6">
+          <p className="text-xs" style={{color:'#999999'}}>© {new Date().getFullYear()} Primetax Solutions — Documento Confidencial</p>
+          <p className="text-xs mt-1" style={{color:'#4FBFBF'}}>contato@primetax.com.br</p>
+        </div>
       </div>
     </div>
   );
