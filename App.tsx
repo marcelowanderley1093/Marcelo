@@ -1369,10 +1369,7 @@ export default function App() {
         <div className="rounded-xl overflow-hidden shadow-lg mb-8">
           <div className="flex items-center justify-between px-6 py-5" style={{background:'linear-gradient(135deg, #4A4A4A 0%, #333333 100%)'}}>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-2xl font-extrabold text-white tracking-wide" style={{fontFamily:'Montserrat,sans-serif'}}>PRIME<span style={{color:'#4FBFBF'}}>TAX</span></span>
-                <span className="text-xs font-semibold tracking-widest" style={{color:'#4FBFBF', fontFamily:'Montserrat,sans-serif'}}>SOLUTIONS</span>
-              </div>
+              <img src="/logo_primetax.png" alt="Primetax Solutions" style={{height:'48px', maxWidth:'220px', objectFit:'contain'}} />
               <p className="text-xs mt-1" style={{color:'#999999'}}>Planejamento Patrimonial e Sucessório</p>
             </div>
             <div className="text-right">
