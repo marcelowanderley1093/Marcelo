@@ -3,6 +3,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import emailjs from '@emailjs/browser';
+import { LOGO_BASE64 } from './logoBase64';
 import {
   Titular,
   Conjuge,
@@ -431,19 +432,28 @@ export default function App() {
     const margin = 15;
     let y = margin;
 
-    // Header com logo e cores Primetax
+    // Header com logo oficial Primetax
     pdf.setFillColor(74, 74, 74);
-    pdf.rect(0, 0, pageWidth, 28, 'F');
+    pdf.rect(0, 0, pageWidth, 30, 'F');
     pdf.setFillColor(79, 191, 191);
-    pdf.rect(0, 28, pageWidth, 2, 'F');
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setFontSize(18);
-    pdf.text('PRIMETAX SOLUTIONS', margin, 12);
-    pdf.setFontSize(10);
+    pdf.rect(0, 30, pageWidth, 2, 'F');
+    // Logo oficial (PNG base64) — posicionado no canto esquerdo do header
+    try {
+      pdf.addImage(LOGO_BASE64, 'PNG', margin, 5, 55, 20);
+    } catch(e) {
+      // fallback texto se imagem falhar
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.text('PRIMETAX SOLUTIONS', margin, 18);
+    }
+    // Subtítulo no lado direito
+    pdf.setTextColor(200, 200, 200);
     pdf.setFont('helvetica', 'normal');
-    pdf.text('Questionário de Holding Familiar — Planejamento Patrimonial e Sucessório', margin, 21);
-    y = 40;
+    pdf.setFontSize(8);
+    pdf.text('Questionário de Holding Familiar', pageWidth - margin, 12, { align: 'right' });
+    pdf.text('Planejamento Patrimonial e Sucessório', pageWidth - margin, 19, { align: 'right' });
+    y = 42;
 
     // Informações do titular
     pdf.setTextColor(74, 74, 74);
@@ -461,10 +471,11 @@ export default function App() {
         pdf.addPage();
         y = margin;
         pdf.setFillColor(74, 74, 74);
-        pdf.rect(0, 0, pageWidth, 8, 'F');
+        pdf.rect(0, 0, pageWidth, 14, 'F');
         pdf.setFillColor(79, 191, 191);
-        pdf.rect(0, 8, pageWidth, 1, 'F');
-        y = 15;
+        pdf.rect(0, 14, pageWidth, 1, 'F');
+        try { pdf.addImage(LOGO_BASE64, 'PNG', margin, 1, 28, 12); } catch(e) {}
+        y = 20;
       }
       if (!value || value === '') return;
       pdf.setFont('helvetica', 'bold');
@@ -478,7 +489,16 @@ export default function App() {
     };
 
     const addSection = (title: string) => {
-      if (y > pageHeight - 35) { pdf.addPage(); y = margin; }
+      if (y > pageHeight - 35) {
+        pdf.addPage();
+        y = margin;
+        pdf.setFillColor(74, 74, 74);
+        pdf.rect(0, 0, pageWidth, 14, 'F');
+        pdf.setFillColor(79, 191, 191);
+        pdf.rect(0, 14, pageWidth, 1, 'F');
+        try { pdf.addImage(LOGO_BASE64, 'PNG', margin, 1, 28, 12); } catch(e) {}
+        y = 20;
+      }
       y += 4;
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(12);
